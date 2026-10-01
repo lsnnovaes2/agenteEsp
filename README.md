@@ -16,6 +16,7 @@ qualquer medida isolada:
 |--------|------------|-----------|
 | **Endpoint** | `sentinel` | Varre os processos locais e audita ou encerra agentes de IA locais (Ollama, LM Studio, LocalAI…), frameworks autônomos (CrewAI, AutoGPT…) e túneis reversos (ngrok, cloudflared, frp…). |
 | **Perímetro** | `sinkhole` / `firewall` | Gera listas de bloqueio de DNS (Pi-hole, BIND RPZ, dnsmasq, hosts) e regras de firewall (iptables, Windows) para barrar a comunicação dos agentes com provedores de IA e serviços de túnel. |
+| **Relatório** | `relatorio` | Consolida os eventos das máquinas em um inventário por equipamento (agente/modelo, IP, nome da máquina), agrupando múltiplos agentes de um mesmo host. Saídas: texto, JSON, CSV, HTML. |
 
 ## Instalação
 
@@ -78,6 +79,26 @@ Os arquivos gerados são **configuração para revisão** — nada é aplicado
 automaticamente. A equipe de rede valida e aplica nos equipamentos
 homologados.
 
+### 3. Relatório consolidado por equipamento
+
+Cada máquina grava suas detecções em `eventos.jsonl`. Junte esses arquivos
+(via compartilhamento, SIEM ou cópia) e gere um inventário único, **agrupado
+por equipamento** — múltiplos agentes de um mesmo host aparecem juntos, com
+**agente/modelo, IP e nome da máquina**:
+
+```bash
+# Tabela no terminal:
+agenteesp relatorio /var/log/agenteesp/eventos.jsonl
+
+# Varios hosts de uma vez, em HTML (para apresentar) ou CSV (para planilha):
+agenteesp relatorio coletados/*.jsonl --formato html --saida relatorio.html
+agenteesp relatorio coletados/*.jsonl --formato csv  --saida relatorio.csv
+```
+
+Colunas: `host`, `ip`, `agente_modelo`, `tipo`, `acao`, `ocorrencias`,
+`usuarios`, `qtd_agentes_na_maquina`. O HTML destaca as máquinas com mais de
+um agente.
+
 ### 3. Personalização por política
 
 Estenda as assinaturas sem alterar o código, via JSON (veja
@@ -91,13 +112,33 @@ Chaves `adicionar_*` somam às listas padrão; `substituir_*` trocam a lista
 inteira. É possível adicionar binários, domínios, portas e liberar usuários
 autorizados.
 
-## Implantação em larga escala
+## Instalação automática (rodar localmente em uma máquina)
 
-- **Linux**: copie `deploy/agenteesp-sentinel.service` para
-  `/etc/systemd/system/`, ajuste o `ExecStart` e habilite com
-  `systemctl enable --now agenteesp-sentinel`. Distribua via Ansible/Puppet.
-- **Windows**: `deploy/instalar-windows.ps1` registra o serviço via NSSM;
-  distribua por GPO/Intune.
+A aplicação roda localmente em cada estação. Há instaladores que fazem tudo
+— instalar o pacote, criar o serviço e iniciá-lo (em **modo auditoria** por
+padrão):
+
+**Linux (systemd):**
+```bash
+sudo ./deploy/instalar-linux.sh                # auditoria (recomendado)
+sudo ./deploy/instalar-linux.sh --bloquear     # já encerra os processos
+sudo ./deploy/instalar-linux.sh --desinstalar  # remove o serviço
+```
+
+**Windows (PowerShell como Administrador):**
+```powershell
+.\deploy\instalar-windows.ps1                 # auditoria (recomendado)
+.\deploy\instalar-windows.ps1 -Bloquear       # já encerra os processos
+.\deploy\instalar-windows.ps1 -Desinstalar    # remove a tarefa
+```
+
+O instalador Windows usa o **Agendador de Tarefas** nativo (inicia no boot
+como `SYSTEM`, sem dependências externas). Ambos criam
+`eventos.jsonl` e `sentinel.log` em `/var/log/agenteesp` (Linux) ou
+`C:\ProgramData\agenteesp` (Windows), e copiam um `assinaturas.json` inicial.
+
+Para distribuir em muitas máquinas de uma vez, chame o mesmo instalador via
+GPO/Intune (Windows) ou Ansible/Puppet/SSH (Linux).
 
 ## Testes
 

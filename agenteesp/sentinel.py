@@ -32,6 +32,7 @@ class Violacao:
     usuario: str
     regra: str          # binario | argumento | porta | porta_suspeita
     motivo: str
+    agente: str = ""    # rotulo limpo do agente/modelo (ex.: "ollama", "crewai")
     comando: str = ""
     exe: str = ""
     encerrar: bool = True
@@ -49,6 +50,21 @@ def _eh_interpretador(nome: str, interpretadores: Set[str]) -> bool:
     return nome in interpretadores or _SUFIXO_VERSAO.sub("", nome) in interpretadores
 
 
+def _ip_local() -> str:
+    """Descobre o IP principal da maquina (o usado para sair pela rede)."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))  # nao envia pacote; so resolve a interface de saida
+        return s.getsockname()[0]
+    except OSError:
+        try:
+            return socket.gethostbyname(socket.gethostname())
+        except OSError:
+            return "127.0.0.1"
+    finally:
+        s.close()
+
+
 def _conexoes(proc: psutil.Process):
     # psutil >= 6 renomeou connections() para net_connections()
     metodo = getattr(proc, "net_connections", None) or proc.connections
@@ -64,6 +80,7 @@ class SentinelMonitor:
         self.arquivo_eventos = arquivo_eventos
         self.executando = True
         self.hostname = socket.gethostname()
+        self.ip = _ip_local()
         # Nunca encerrar o proprio sentinel nem quem o iniciou
         self._protegidos = {os.getpid(), os.getppid()}
         # Evita repetir o mesmo alerta a cada ciclo em modo auditoria
@@ -100,7 +117,7 @@ class SentinelMonitor:
             exe_nome = _nome_base(os.path.basename(exe)) if exe else ""
             for candidato in (nome, exe_nome):
                 if candidato and candidato in self.a.binarios:
-                    return Violacao(regra="binario",
+                    return Violacao(regra="binario", agente=candidato,
                                     motivo=f"Executavel proibido: {candidato}", **base)
 
             # Regra 2: frameworks de agentes executados por interpretadores
@@ -109,7 +126,7 @@ class SentinelMonitor:
                 if not any(ign in cmd_l for ign in self.a.comandos_ignorados):
                     for termo in self.a.argumentos:
                         if termo in cmd_l:
-                            return Violacao(regra="argumento",
+                            return Violacao(regra="argumento", agente=termo.strip(),
                                             motivo=f"Framework de agente na linha de comando: '{termo}'",
                                             **base)
 
@@ -120,11 +137,12 @@ class SentinelMonitor:
                         continue
                     porta = c.laddr.port
                     if porta in self.a.portas_proibidas:
-                        return Violacao(regra="porta",
+                        return Violacao(regra="porta", agente=self.a.portas_proibidas[porta],
                                         motivo=f"Escutando na porta {porta} ({self.a.portas_proibidas[porta]})",
                                         **base)
                     if porta in self.a.portas_suspeitas:
                         return Violacao(regra="porta_suspeita", encerrar=False,
+                                        agente=self.a.portas_suspeitas[porta],
                                         motivo=f"Escutando na porta generica {porta} "
                                                f"({self.a.portas_suspeitas[porta]}) - verificar manualmente",
                                         **base)
@@ -139,7 +157,7 @@ class SentinelMonitor:
         if not self.arquivo_eventos:
             return
         evento = {"timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
-                  "host": self.hostname, "acao": acao, **asdict(v)}
+                  "host": self.hostname, "ip": self.ip, "acao": acao, **asdict(v)}
         try:
             with open(self.arquivo_eventos, "a", encoding="utf-8") as f:
                 f.write(json.dumps(evento, ensure_ascii=False) + "\n")

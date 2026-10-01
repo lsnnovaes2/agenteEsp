@@ -7,6 +7,7 @@ import sys
 from . import __version__
 from .assinaturas import carregar
 from .bloqueios import firewall, sinkhole
+from .relatorio import gerar as gerar_relatorio, ler_eventos
 from .sentinel import SentinelMonitor
 
 
@@ -50,6 +51,19 @@ def _cmd_firewall(args) -> int:
     return 0
 
 
+def _cmd_relatorio(args) -> int:
+    eventos = ler_eventos(args.eventos)
+    saida = gerar_relatorio(
+        eventos, formato=args.formato,
+        incluir_porta_suspeita=not args.sem_portas_suspeitas,
+    )
+    (open(args.saida, "w", encoding="utf-8").write(saida) if args.saida
+     else sys.stdout.write(saida if saida.endswith("\n") else saida + "\n"))
+    if args.saida:
+        print(f"Relatorio ({args.formato}) salvo em {args.saida}", file=sys.stderr)
+    return 0
+
+
 def construir_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="agenteesp",
@@ -78,6 +92,16 @@ def construir_parser() -> argparse.ArgumentParser:
     f.add_argument("--plataforma", default="iptables", choices=["iptables", "windows"])
     f.add_argument("--saida", help="Arquivo de saida (padrao: stdout).")
     f.set_defaults(func=_cmd_firewall)
+
+    r = sub.add_parser("relatorio",
+                       help="Consolida os eventos por equipamento (agente, IP, maquina).")
+    r.add_argument("eventos", nargs="+",
+                   help="Um ou mais arquivos JSONL de eventos gerados pelo sentinel.")
+    r.add_argument("--formato", default="texto", choices=["texto", "json", "csv", "html"])
+    r.add_argument("--saida", help="Arquivo de saida (padrao: stdout).")
+    r.add_argument("--sem-portas-suspeitas", action="store_true",
+                   help="Ignora deteccoes de portas genericas (apenas alertas).")
+    r.set_defaults(func=_cmd_relatorio)
 
     return p
 
