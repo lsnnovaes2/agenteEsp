@@ -88,6 +88,31 @@ O instalador cria:
 - `/etc/cerberus/assinaturas.json` (configuração);
 - `/var/log/cerberus/eventos.jsonl` e `sentinel.log`.
 
+#### Varredura de rede agendada (opcional)
+
+Para também agendar a **varredura de rede** periodicamente (via systemd timer):
+
+```bash
+# usa /etc/cerberus/redes.json (copiado do exemplo; edite com as VLANs reais):
+sudo ./deploy/instalar-linux.sh --rede
+
+# frequência personalizada (sintaxe OnCalendar do systemd):
+sudo ./deploy/instalar-linux.sh --rede --rede-quando=hourly
+sudo ./deploy/instalar-linux.sh --rede --rede-quando="Mon *-*-* 03:00:00"
+
+# alvos diretos, sem arquivo:
+sudo ./deploy/instalar-linux.sh --rede-alvos="10.0.0.0/24 192.168.1.0/24"
+```
+
+Cada execução grava um JSONL com data/hora em `/var/log/cerberus/rede/`.
+Acompanhe e consolide:
+
+```bash
+systemctl list-timers cerberus-rede.timer      # próxima execução
+systemctl start cerberus-rede.service          # rodar agora
+cerberus relatorio /var/log/cerberus/rede/*.jsonl --formato html --saida rel.html
+```
+
 ### 3.2. Instalação manual (sem serviço)
 
 ```bash
