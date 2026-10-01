@@ -56,6 +56,7 @@ class DeteccaoRede:
     agente: str
     confirmado: bool        # True = assinatura HTTP bateu; False = so a porta abriu
     amostra: str = ""
+    segmento: str = ""      # nome da VLAN/segmento de onde veio a deteccao
 
     def como_evento(self) -> dict:
         """Converte para o formato de evento consumido por cerberus.relatorio."""
@@ -63,6 +64,7 @@ class DeteccaoRede:
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
             "host": self.host,
             "ip": self.ip,
+            "segmento": self.segmento,
             "acao": "detectado-rede" if self.confirmado else "porta-aberta",
             "pid": None,
             "nome": self.agente,
@@ -170,3 +172,53 @@ def varrer_rede(alvos: Iterable[str], portas: Optional[Iterable[int]] = None,
 
 def eventos_de(achados: Iterable[DeteccaoRede]) -> List[dict]:
     return [a.como_evento() for a in achados]
+
+
+def carregar_segmentos(caminho: str) -> List[Tuple[str, str]]:
+    """
+    Le um arquivo JSON descrevendo os segmentos/VLANs da empresa e retorna
+    uma lista de (nome_segmento, cidr).
+
+    Formato aceito:
+      {"segmentos": [
+          {"nome": "VLAN10-RH",       "cidr": "10.10.0.0/24"},
+          {"nome": "VLAN20-Financeiro","cidr": "10.20.0.0/24"},
+          {"nome": "VLAN30-Fabrica",  "cidr": "10.30.0.0/22"}
+      ]}
+    Tambem aceita uma lista simples de CIDRs: ["10.10.0.0/24", "10.20.0.0/24"].
+    """
+    with open(caminho, encoding="utf-8") as f:
+        dados = json.load(f)
+    if isinstance(dados, dict):
+        dados = dados.get("segmentos", [])
+    segmentos: List[Tuple[str, str]] = []
+    for item in dados:
+        if isinstance(item, str):
+            segmentos.append((item, item))
+        else:
+            cidr = item.get("cidr") or item.get("rede") or ""
+            nome = item.get("nome") or cidr
+            if cidr:
+                segmentos.append((nome, cidr))
+    return segmentos
+
+
+def varrer_segmentos(segmentos: Iterable[Tuple[str, str]],
+                     portas: Optional[Iterable[int]] = None,
+                     threads: int = 100,
+                     progresso=None,
+                     por_segmento=None) -> List[DeteccaoRede]:
+    """
+    Varre varios segmentos/VLANs em sequencia, rotulando cada deteccao com o
+    nome do segmento. `por_segmento(nome, achados)` (opcional) e chamado ao fim
+    de cada VLAN. Uma VLAN inalcancavel (sem rota) apenas nao retorna hosts.
+    """
+    todos: List[DeteccaoRede] = []
+    for nome, cidr in segmentos:
+        achados = varrer_rede([cidr], portas=portas, threads=threads, progresso=progresso)
+        for a in achados:
+            a.segmento = nome
+        if por_segmento:
+            por_segmento(nome, achados)
+        todos.extend(achados)
+    return todos

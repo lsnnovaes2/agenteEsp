@@ -31,6 +31,7 @@ class AgenteDetectado:
 class Equipamento:
     host: str
     ip: str
+    segmento: str = ""
     agentes: "OrderedDict[str, AgenteDetectado]" = field(default_factory=OrderedDict)
 
     @property
@@ -90,7 +91,10 @@ def consolidar(eventos: Iterable[dict],
         chave = f"{host}|{ip}"
         equip = por_equip.get(chave)
         if equip is None:
-            equip = por_equip[chave] = Equipamento(host=host, ip=ip)
+            equip = por_equip[chave] = Equipamento(host=host, ip=ip,
+                                                   segmento=ev.get("segmento", ""))
+        elif not equip.segmento and ev.get("segmento"):
+            equip.segmento = ev["segmento"]
 
         agente = _nome_agente(ev)
         det = equip.agentes.get(agente)
@@ -122,7 +126,8 @@ def para_dict(equipamentos: List[Equipamento]) -> dict:
         },
         "equipamentos": [
             {
-                "host": e.host, "ip": e.ip, "qtd_agentes": e.total_agentes,
+                "host": e.host, "ip": e.ip, "segmento": e.segmento,
+                "qtd_agentes": e.total_agentes,
                 "agentes": [
                     {"agente": a.agente, "tipo": a.tipo, "acao": a.acao,
                      "ocorrencias": a.ocorrencias, "usuarios": sorted(a.usuarios),
@@ -142,10 +147,11 @@ def para_json(equipamentos: List[Equipamento]) -> str:
 def para_csv(equipamentos: List[Equipamento]) -> str:
     buf = io.StringIO()
     w = csv.writer(buf)
-    w.writerow(["host", "ip", "agente_modelo", "tipo", "acao", "ocorrencias", "usuarios", "qtd_agentes_na_maquina"])
+    w.writerow(["segmento", "host", "ip", "agente_modelo", "tipo", "acao",
+                "ocorrencias", "usuarios", "qtd_agentes_na_maquina"])
     for e in equipamentos:
         for a in e.agentes.values():
-            w.writerow([e.host, e.ip, a.agente, a.tipo, a.acao, a.ocorrencias,
+            w.writerow([e.segmento, e.host, e.ip, a.agente, a.tipo, a.acao, a.ocorrencias,
                         ";".join(sorted(a.usuarios)), e.total_agentes])
     return buf.getvalue()
 
@@ -162,8 +168,9 @@ def para_texto(equipamentos: List[Equipamento]) -> str:
     linhas.append("=" * 72)
     for e in equipamentos:
         marca = "  <-- MULTIPLOS AGENTES" if e.total_agentes > 1 else ""
+        seg = f"  VLAN {e.segmento}" if e.segmento else ""
         linhas.append("")
-        linhas.append(f"[{e.host}]  IP {e.ip}  ({e.total_agentes} agente(s)){marca}")
+        linhas.append(f"[{e.host}]  IP {e.ip}{seg}  ({e.total_agentes} agente(s)){marca}")
         linhas.append("-" * 72)
         for a in e.agentes.values():
             usr = ", ".join(sorted(a.usuarios)) or "-"
@@ -193,7 +200,7 @@ def para_html(equipamentos: List[Equipamento], titulo: str = "Relatorio Cerberus
         <section class="equip {multi}">
           <header>
             <h2>{esc(e.host)} {badge}</h2>
-            <div class="meta"><span>IP {esc(e.ip)}</span><span>{e.total_agentes} agente(s)</span></div>
+            <div class="meta"><span>IP {esc(e.ip)}</span>{f'<span>VLAN {esc(e.segmento)}</span>' if e.segmento else ''}<span>{e.total_agentes} agente(s)</span></div>
           </header>
           <table>
             <thead><tr><th>Agente / Modelo</th><th>Tipo</th><th>Ação</th><th>Ocorr.</th><th>Usuário(s)</th></tr></thead>

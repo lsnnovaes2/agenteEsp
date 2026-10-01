@@ -5,8 +5,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
 
-from cerberus.varredura import (DeteccaoRede, eventos_de, expandir_alvos,
-                                varrer_host)
+from cerberus.varredura import (DeteccaoRede, carregar_segmentos, eventos_de,
+                                expandir_alvos, varrer_host)
 
 
 class FakeOllamaHandler(BaseHTTPRequestHandler):
@@ -72,3 +72,31 @@ def test_evento_compativel_com_relatorio():
     equip = consolidar(eventos_de([d]))
     assert equip[0].host == "PC-9"
     assert "ollama" in equip[0].agentes
+
+
+def test_carregar_segmentos_formato_completo(tmp_path):
+    import json
+    arq = tmp_path / "redes.json"
+    arq.write_text(json.dumps({"segmentos": [
+        {"nome": "VLAN10", "cidr": "10.10.0.0/24"},
+        {"nome": "VLAN20", "cidr": "10.20.0.0/24"},
+    ]}), encoding="utf-8")
+    segs = carregar_segmentos(str(arq))
+    assert segs == [("VLAN10", "10.10.0.0/24"), ("VLAN20", "10.20.0.0/24")]
+
+
+def test_carregar_segmentos_lista_simples(tmp_path):
+    import json
+    arq = tmp_path / "redes.json"
+    arq.write_text(json.dumps(["10.1.0.0/24", "10.2.0.0/24"]), encoding="utf-8")
+    segs = carregar_segmentos(str(arq))
+    assert [c for _, c in segs] == ["10.1.0.0/24", "10.2.0.0/24"]
+
+
+def test_segmento_aparece_no_relatorio():
+    from cerberus.relatorio import consolidar, para_csv
+    d = DeteccaoRede(ip="10.20.0.5", host="PC-FIN", porta=11434, agente="ollama",
+                     confirmado=True, segmento="VLAN20-Financeiro")
+    equip = consolidar(eventos_de([d]))
+    assert equip[0].segmento == "VLAN20-Financeiro"
+    assert "VLAN20-Financeiro" in para_csv(equip)

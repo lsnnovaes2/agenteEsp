@@ -118,6 +118,35 @@ Informe as faixas, escolha os serviços, clique em **Varrer rede** e os
 resultados (máquina, IP, agente, porta) aparecem na tabela, com exportação para
 HTML/CSV. No Linux, instale o Tkinter se faltar: `sudo apt install python3-tk`.
 
+#### Redes muito segmentadas (muitas VLANs)
+
+Numa rede com muitas VLANs, **um scanner em um ponto só não alcança os outros
+segmentos** (o roteamento/firewall entre VLANs normalmente bloqueia). Há duas
+estratégias — e o ideal é combiná-las:
+
+**A) `sentinel` em cada máquina (independe de VLAN).** Como cada estação se
+reporta sozinha, a segmentação não atrapalha. É a cobertura mais completa
+(pega até agentes que não abrem porta). Distribua por GPO/Intune/Ansible e
+aponte o `eventos.jsonl` para um compartilhamento central.
+
+**B) Varredura por segmento, consolidada num relatório.** Liste todas as VLANs
+em um arquivo e varra todas de uma vez (cada detecção fica rotulada com a VLAN):
+
+```bash
+# edite config/redes.exemplo.json com as VLANs da empresa
+cerberus rede --arquivo config/redes.exemplo.json --formato html --saida rede.html
+```
+
+Se o scanner central não tiver rota até todas as VLANs, rode **uma instância
+por segmento** (ou por grupo alcançável), cada uma gravando seu `eventos.jsonl`
+numa pasta comum, e junte tudo:
+
+```bash
+cerberus relatorio coletas/*.jsonl --formato html --saida consolidado.html
+```
+
+O relatório passa a exibir a coluna **VLAN/segmento** por equipamento.
+
 ### 4. Relatório consolidado por equipamento
 
 Cada máquina grava suas detecções em `eventos.jsonl`. Junte esses arquivos

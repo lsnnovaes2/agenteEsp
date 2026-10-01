@@ -9,7 +9,7 @@ from .assinaturas import carregar
 from .bloqueios import firewall, sinkhole
 from .relatorio import gerar as gerar_relatorio, ler_eventos
 from .sentinel import SentinelMonitor
-from .varredura import eventos_de, varrer_rede
+from .varredura import carregar_segmentos, eventos_de, varrer_rede, varrer_segmentos
 
 
 def _configurar_log(nivel: str, arquivo: str = None) -> None:
@@ -75,8 +75,22 @@ def _cmd_rede(args) -> int:
         if feitos == total or feitos % 50 == 0:
             print(f"[*] {feitos}/{total} hosts verificados...", file=sys.stderr)
 
-    print(f"[*] Varrendo {', '.join(args.alvos)} (uso autorizado apenas)...", file=sys.stderr)
-    achados = varrer_rede(args.alvos, threads=args.threads, progresso=progresso)
+    if args.arquivo:
+        segmentos = carregar_segmentos(args.arquivo)
+        print(f"[*] Varrendo {len(segmentos)} segmento(s) de {args.arquivo} "
+              f"(uso autorizado apenas)...", file=sys.stderr)
+
+        def por_segmento(nome, achados):
+            print(f"[*] VLAN {nome}: {len(achados)} deteccao(oes).", file=sys.stderr)
+
+        achados = varrer_segmentos(segmentos, threads=args.threads,
+                                   progresso=progresso, por_segmento=por_segmento)
+    else:
+        if not args.alvos:
+            print("ERRO: informe faixas/IPs ou use --arquivo redes.json", file=sys.stderr)
+            return 2
+        print(f"[*] Varrendo {', '.join(args.alvos)} (uso autorizado apenas)...", file=sys.stderr)
+        achados = varrer_rede(args.alvos, threads=args.threads, progresso=progresso)
     eventos = eventos_de(achados)
     print(f"[*] {len(eventos)} deteccao(oes) em {len({e['ip'] for e in eventos})} host(s).",
           file=sys.stderr)
@@ -135,8 +149,9 @@ def construir_parser() -> argparse.ArgumentParser:
 
     v = sub.add_parser("rede",
                        help="Varre faixas de IP da rede interna procurando agentes expostos.")
-    v.add_argument("alvos", nargs="+",
+    v.add_argument("alvos", nargs="*",
                    help="Faixas CIDR ou IPs da SUA rede (ex.: 10.0.0.0/24 192.168.1.5).")
+    v.add_argument("--arquivo", help="JSON com os segmentos/VLANs a varrer (ver config/redes.exemplo.json).")
     v.add_argument("--formato", default="jsonl",
                    choices=["jsonl", "texto", "json", "csv", "html"],
                    help="jsonl (padrao) gera eventos para juntar ao relatorio; "
