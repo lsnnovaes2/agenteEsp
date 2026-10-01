@@ -12,6 +12,7 @@ dependencies = ["psutil>=5.9"]
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0"]
+build = ["pyinstaller>=6.0"]
 
 [project.scripts]
 cerberus = "cerberus.cli:main"

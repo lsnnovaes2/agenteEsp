@@ -32,6 +32,9 @@ pip install .          # instala o pacote e o comando `cerberus`
 pip install -e ".[dev]"
 ```
 
+📖 **Manual completo de instalação e uso (Linux e Windows):**
+[`docs/MANUAL.md`](docs/MANUAL.md).
+
 Dependência: `psutil` (apenas o `sentinel` a usa; os geradores de bloqueio
 usam só a biblioteca padrão).
 
@@ -117,6 +120,14 @@ cerberus painel          # ou, após instalar: cerberus-painel
 Informe as faixas, escolha os serviços, clique em **Varrer rede** e os
 resultados (máquina, IP, agente, porta) aparecem na tabela, com exportação para
 HTML/CSV. No Linux, instale o Tkinter se faltar: `sudo apt install python3-tk`.
+
+Para distribuir o painel **sem instalar Python** nas estações, gere um
+executável standalone (PyInstaller):
+
+```bash
+./packaging/build-linux.sh        # Linux  -> dist/cerberus-painel
+.\packaging\build-windows.ps1     # Windows -> dist\cerberus-painel.exe
+```
 
 #### Redes muito segmentadas (muitas VLANs)
 
