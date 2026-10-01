@@ -16,5 +16,8 @@ dev = ["pytest>=7.0"]
 [project.scripts]
 cerberus = "cerberus.cli:main"
 
+[project.gui-scripts]
+cerberus-painel = "cerberus.painel_desktop:main"
+
 [tool.setuptools.packages.find]
 include = ["cerberus*"]

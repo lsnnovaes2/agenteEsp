@@ -65,6 +65,11 @@ def _cmd_relatorio(args) -> int:
     return 0
 
 
+def _cmd_painel(args) -> int:
+    from .painel_desktop import main as painel_main
+    return painel_main()
+
+
 def _cmd_rede(args) -> int:
     def progresso(feitos, total):
         if feitos == total or feitos % 50 == 0:
@@ -139,6 +144,10 @@ def construir_parser() -> argparse.ArgumentParser:
     v.add_argument("--threads", type=int, default=100, help="Varreduras simultaneas.")
     v.add_argument("--saida", help="Arquivo de saida (padrao: stdout).")
     v.set_defaults(func=_cmd_rede)
+
+    g = sub.add_parser("painel",
+                       help="Abre o painel desktop (GUI) de busca de IA na rede.")
+    g.set_defaults(func=_cmd_painel)
 
     return p
 

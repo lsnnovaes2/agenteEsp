@@ -105,6 +105,19 @@ HTTP no endpoint de identificação do serviço. Em redes segmentadas (VLANs), o
 firewall entre as sub-redes precisa **permitir a saída** do host de varredura
 para essas portas nos alvos — ou rode uma instância por segmento.
 
+#### Painel desktop (interface gráfica)
+
+Para quem prefere uma janela em vez do terminal, há um painel desktop (Tkinter,
+já incluso no Python) que faz a mesma varredura e lista as máquinas com IA:
+
+```bash
+cerberus painel          # ou, após instalar: cerberus-painel
+```
+
+Informe as faixas, escolha os serviços, clique em **Varrer rede** e os
+resultados (máquina, IP, agente, porta) aparecem na tabela, com exportação para
+HTML/CSV. No Linux, instale o Tkinter se faltar: `sudo apt install python3-tk`.
+
 ### 4. Relatório consolidado por equipamento
 
 Cada máquina grava suas detecções em `eventos.jsonl`. Junte esses arquivos
