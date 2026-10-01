@@ -35,6 +35,11 @@ pip install -e ".[dev]"
 📖 **Manual completo de instalação e uso (Linux e Windows):**
 [`docs/MANUAL.md`](docs/MANUAL.md).
 
+📄 **Documentação técnica detalhada (PDF):**
+[`docs/Cerberus-Documentacao-Tecnica.pdf`](docs/Cerberus-Documentacao-Tecnica.pdf)
+— arquitetura, componentes, detecção, VLANs, deploy, container e segurança.
+Regenerável com `pip install reportlab && python3 docs/gerar_documentacao.py`.
+
 Dependência: `psutil` (apenas o `sentinel` a usa; os geradores de bloqueio
 usam só a biblioteca padrão).
 
