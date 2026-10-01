@@ -20,7 +20,7 @@ import psutil
 
 from .assinaturas import Assinaturas
 
-log = logging.getLogger("agenteesp.sentinel")
+log = logging.getLogger("cerberus.sentinel")
 
 _SUFIXO_VERSAO = re.compile(r"[\d.]+$")
 

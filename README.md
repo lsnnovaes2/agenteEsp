@@ -1,4 +1,4 @@
-# agenteEsp
+# Cerberus
 
 Ferramenta de **conformidade corporativa** para detectar e bloquear o uso de
 agentes de IA e túneis de rede **não autorizados** nas estações e na rede
@@ -15,13 +15,19 @@ qualquer medida isolada:
 | Camada | Componente | O que faz |
 |--------|------------|-----------|
 | **Endpoint** | `sentinel` | Varre os processos locais e audita ou encerra agentes de IA locais (Ollama, LM Studio, LocalAI…), frameworks autônomos (CrewAI, AutoGPT…) e túneis reversos (ngrok, cloudflared, frp…). |
+| **Rede** | `rede` | Varre faixas de IP da rede interna, de um ponto só, procurando agentes expostos — sem precisar de instalação em cada máquina. Alimenta o mesmo relatório. |
 | **Perímetro** | `sinkhole` / `firewall` | Gera listas de bloqueio de DNS (Pi-hole, BIND RPZ, dnsmasq, hosts) e regras de firewall (iptables, Windows) para barrar a comunicação dos agentes com provedores de IA e serviços de túnel. |
 | **Relatório** | `relatorio` | Consolida os eventos das máquinas em um inventário por equipamento (agente/modelo, IP, nome da máquina), agrupando múltiplos agentes de um mesmo host. Saídas: texto, JSON, CSV, HTML. |
+
+As duas abordagens são complementares: o **`sentinel`** (um agente por máquina)
+vê tudo, inclusive processos que não abrem porta; a **`rede`** (varredura a
+partir de um ponto) cobre a rede inteira sem instalar nada nas estações, mas só
+enxerga agentes que expõem uma porta. Use as duas juntas.
 
 ## Instalação
 
 ```bash
-pip install .          # instala o pacote e o comando `agenteesp`
+pip install .          # instala o pacote e o comando `cerberus`
 # para desenvolvimento/testes:
 pip install -e ".[dev]"
 ```
@@ -38,10 +44,10 @@ encerrar nada. Analise os eventos coletados e só então ative o bloqueio.
 
 ```bash
 # Auditoria (não encerra nada, apenas registra):
-sudo agenteesp sentinel --eventos /var/log/agenteesp/eventos.jsonl
+sudo cerberus sentinel --eventos /var/log/cerberus/eventos.jsonl
 
 # Bloqueio efetivo (encerra os processos em violação):
-sudo agenteesp sentinel --bloquear --eventos /var/log/agenteesp/eventos.jsonl
+sudo cerberus sentinel --bloquear --eventos /var/log/cerberus/eventos.jsonl
 ```
 
 Precisa de **root/Administrador** para enxergar e encerrar processos de
@@ -65,21 +71,41 @@ regra acionada e comando — ideal para encaminhar a um SIEM.
 
 ```bash
 # Lista de DNS para o Pi-hole:
-agenteesp sinkhole --formato pihole --saida /etc/pihole/agenteesp.list
+cerberus sinkhole --formato pihole --saida /etc/pihole/cerberus.list
 
 # Zona RPZ para BIND, ou formato dnsmasq/hosts:
-agenteesp sinkhole --formato rpz --saida db.agenteesp.rpz
+cerberus sinkhole --formato rpz --saida db.cerberus.rpz
 
 # Regras de firewall:
-agenteesp firewall --plataforma iptables --saida bloquear-portas.sh
-agenteesp firewall --plataforma windows  --saida bloquear-portas.bat
+cerberus firewall --plataforma iptables --saida bloquear-portas.sh
+cerberus firewall --plataforma windows  --saida bloquear-portas.bat
 ```
 
 Os arquivos gerados são **configuração para revisão** — nada é aplicado
 automaticamente. A equipe de rede valida e aplica nos equipamentos
 homologados.
 
-### 3. Relatório consolidado por equipamento
+### 3. Varredura da rede interna (de um ponto só)
+
+Rode a partir de um servidor da TI/Segurança para verificar faixas inteiras de
+IP **da sua empresa**, sem agente instalado nas estações:
+
+```bash
+# Gera eventos (jsonl) para juntar ao relatório:
+cerberus rede 10.0.0.0/24 192.168.1.0/24 --saida eventos-rede.jsonl
+
+# Ou já monta o relatório consolidado direto:
+cerberus rede 10.0.0.0/24 --formato html --saida relatorio-rede.html
+```
+
+A varredura **não precisa abrir nenhuma porta** na máquina que a executa, nem
+no firewall, para conexões de saída dentro da rede local — ela apenas *conecta*
+nas portas dos hosts-alvo (ex.: 11434 do Ollama) e confirma por uma requisição
+HTTP no endpoint de identificação do serviço. Em redes segmentadas (VLANs), o
+firewall entre as sub-redes precisa **permitir a saída** do host de varredura
+para essas portas nos alvos — ou rode uma instância por segmento.
+
+### 4. Relatório consolidado por equipamento
 
 Cada máquina grava suas detecções em `eventos.jsonl`. Junte esses arquivos
 (via compartilhamento, SIEM ou cópia) e gere um inventário único, **agrupado
@@ -88,11 +114,11 @@ por equipamento** — múltiplos agentes de um mesmo host aparecem juntos, com
 
 ```bash
 # Tabela no terminal:
-agenteesp relatorio /var/log/agenteesp/eventos.jsonl
+cerberus relatorio /var/log/cerberus/eventos.jsonl
 
 # Varios hosts de uma vez, em HTML (para apresentar) ou CSV (para planilha):
-agenteesp relatorio coletados/*.jsonl --formato html --saida relatorio.html
-agenteesp relatorio coletados/*.jsonl --formato csv  --saida relatorio.csv
+cerberus relatorio coletados/*.jsonl --formato html --saida relatorio.html
+cerberus relatorio coletados/*.jsonl --formato csv  --saida relatorio.csv
 ```
 
 Colunas: `host`, `ip`, `agente_modelo`, `tipo`, `acao`, `ocorrencias`,
@@ -105,7 +131,7 @@ Estenda as assinaturas sem alterar o código, via JSON (veja
 `config/assinaturas.exemplo.json`):
 
 ```bash
-agenteesp --config /etc/agenteesp/assinaturas.json sentinel --bloquear
+cerberus --config /etc/cerberus/assinaturas.json sentinel --bloquear
 ```
 
 Chaves `adicionar_*` somam às listas padrão; `substituir_*` trocam a lista
@@ -134,11 +160,25 @@ sudo ./deploy/instalar-linux.sh --desinstalar  # remove o serviço
 
 O instalador Windows usa o **Agendador de Tarefas** nativo (inicia no boot
 como `SYSTEM`, sem dependências externas). Ambos criam
-`eventos.jsonl` e `sentinel.log` em `/var/log/agenteesp` (Linux) ou
-`C:\ProgramData\agenteesp` (Windows), e copiam um `assinaturas.json` inicial.
+`eventos.jsonl` e `sentinel.log` em `/var/log/cerberus` (Linux) ou
+`C:\ProgramData\cerberus` (Windows), e copiam um `assinaturas.json` inicial.
 
 Para distribuir em muitas máquinas de uma vez, chame o mesmo instalador via
 GPO/Intune (Windows) ou Ansible/Puppet/SSH (Linux).
+
+### Rodando em container (Docker)
+
+> ⚠️ Por padrão, um container só enxerga **os próprios processos**, não os da
+> máquina hospedeira. Para o `sentinel` vigiar o host, suba com `pid: host` e
+> `network_mode: host` (já configurados em `deploy/docker-compose.yml`):
+
+```bash
+docker compose -f deploy/docker-compose.yml up -d --build
+```
+
+O `rede` (varredura) funciona em qualquer container, pois atua pela rede — só
+precisa de rota até os alvos (use `network_mode: host` ou a rede do Docker com
+acesso à LAN).
 
 ## Testes
 

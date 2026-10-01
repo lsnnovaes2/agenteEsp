@@ -1,4 +1,4 @@
-<title>Painel agenteEsp</title>
+<title>Painel Cerberus</title>
 <style>
   /* Layout: coluna de seleção à esquerda, saída "sticky" à direita; empilha no celular */
   :root {
@@ -134,9 +134,9 @@
 <div class="wrap">
   <header class="page">
     <button class="theme-toggle" id="themeBtn" type="button">tema</button>
-    <h1>Painel agenteEsp</h1>
+    <h1>Painel Cerberus</h1>
     <p>Marque os tipos de agentes e modelos que entram na varredura. O painel monta o arquivo
-       <code>assinaturas.json</code> e o comando <code>agenteesp</code> correspondentes.</p>
+       <code>assinaturas.json</code> e o comando <code>cerberus</code> correspondentes.</p>
   </header>
 
   <div class="bar">
@@ -177,7 +177,7 @@
 
 <script>
 // ------------------------------------------------------------------ catálogo
-// Reflete as assinaturas padrão de agenteesp/assinaturas.py
+// Reflete as assinaturas padrão de cerberus/assinaturas.py
 const CATALOGO = [
   {
     chave: "ia_local", titulo: "IA local / servidores de LLM", mapa: "binarios", tag: "kill",
@@ -223,7 +223,7 @@ const CATALOGO = [
   },
   {
     chave: "dom_ia", titulo: "Domínios de provedores de IA (DNS)", mapa: "dominios_ia", tag: "audit",
-    desc: "Entram na lista de sinkhole de DNS gerada por agenteesp sinkhole.",
+    desc: "Entram na lista de sinkhole de DNS gerada por cerberus sinkhole.",
     itens: [
       ["api.openai.com","OpenAI"], ["api.anthropic.com","Anthropic"],
       ["generativelanguage.googleapis.com","Google Gemini"], ["api.cohere.ai","Cohere"],
@@ -304,7 +304,7 @@ function selecionadosPorMapa() {
 function montarJson() {
   const sel = selecionadosPorMapa();
   const cfg = {
-    _comentario: "Gerado pelo Painel agenteEsp. Varre somente os itens listados (chaves substituir_*).",
+    _comentario: "Gerado pelo Painel Cerberus. Varre somente os itens listados (chaves substituir_*).",
   };
   for (const mapa of ["binarios","argumentos","dominios_ia","dominios_tunel"]) {
     cfg["substituir_" + mapa] = sel[mapa] || [];
@@ -326,14 +326,14 @@ function montarCli() {
   return [
     "# 1) Sentinel de endpoint (processos locais)",
     aviso,
-    `sudo agenteesp --config assinaturas.json sentinel${flagBloqueio} \\`,
-    "    --eventos /var/log/agenteesp/eventos.jsonl",
+    `sudo cerberus --config assinaturas.json sentinel${flagBloqueio} \\`,
+    "    --eventos /var/log/cerberus/eventos.jsonl",
     "",
     "# 2) Sinkhole de DNS (domínios marcados)",
-    "agenteesp --config assinaturas.json sinkhole --formato pihole --saida agenteesp.list",
+    "cerberus --config assinaturas.json sinkhole --formato pihole --saida cerberus.list",
     "",
     "# 3) Regras de firewall (portas marcadas)",
-    "agenteesp --config assinaturas.json firewall --plataforma iptables --saida bloquear-portas.sh",
+    "cerberus --config assinaturas.json firewall --plataforma iptables --saida bloquear-portas.sh",
   ].join("\n");
 }
 

@@ -28,7 +28,7 @@ def sinkhole(a: Assinaturas, formato: str = "pihole", ip_sinkhole: str = "0.0.0.
     formato: pihole | hosts | dnsmasq | rpz
     """
     dominios = _dominios(a)
-    cab = ["# agenteEsp - sinkhole de DNS para provedores de IA e tuneis nao homologados",
+    cab = ["# Cerberus - sinkhole de DNS para provedores de IA e tuneis nao homologados",
            f"# formato={formato} | {len(dominios)} dominios", ""]
 
     if formato in ("pihole", "hosts"):
@@ -60,7 +60,7 @@ def firewall(a: Assinaturas, plataforma: str = "iptables") -> str:
 
     if plataforma == "iptables":
         linhas = ["#!/bin/sh",
-                  "# agenteEsp - bloqueio de portas de agentes (revisar antes de aplicar)",
+                  "# Cerberus - bloqueio de portas de agentes (revisar antes de aplicar)",
                   "set -e"]
         for p in portas:
             linhas.append(f"# {desc[p]}")
@@ -70,11 +70,11 @@ def firewall(a: Assinaturas, plataforma: str = "iptables") -> str:
 
     if plataforma == "windows":
         linhas = ["@echo off",
-                  "REM agenteEsp - bloqueio de portas de agentes (executar como Administrador)"]
+                  "REM Cerberus - bloqueio de portas de agentes (executar como Administrador)"]
         for p in portas:
-            linhas.append(f'netsh advfirewall firewall add rule name="agenteEsp-bloqueio-{p}" '
+            linhas.append(f'netsh advfirewall firewall add rule name="Cerberus-bloqueio-{p}" '
                           f'dir=in action=block protocol=TCP localport={p}')
-            linhas.append(f'netsh advfirewall firewall add rule name="agenteEsp-bloqueio-out-{p}" '
+            linhas.append(f'netsh advfirewall firewall add rule name="Cerberus-bloqueio-out-{p}" '
                           f'dir=out action=block protocol=TCP remoteport={p}')
         return "\n".join(linhas) + "\n"
 

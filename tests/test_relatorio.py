@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from agenteesp.relatorio import (consolidar, gerar, ler_eventos, para_csv,
+from cerberus.relatorio import (consolidar, gerar, ler_eventos, para_csv,
                                   para_dict, para_html)
 
 

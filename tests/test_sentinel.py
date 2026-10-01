@@ -3,8 +3,8 @@
 import psutil
 import pytest
 
-from agenteesp.assinaturas import carregar
-from agenteesp.sentinel import SentinelMonitor
+from cerberus.assinaturas import carregar
+from cerberus.sentinel import SentinelMonitor
 
 
 class FakeAddr:

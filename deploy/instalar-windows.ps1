@@ -1,5 +1,5 @@
 <#
-    Instalador automatico do agenteEsp para Windows.
+    Instalador automatico do Cerberus para Windows.
     Instala o pacote e registra o Sentinel para iniciar com o sistema.
 
     Usa o Agendador de Tarefas (nativo, sem dependencias externas) para rodar
@@ -19,8 +19,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$NomeTarefa = "agenteEsp-Sentinel"
-$DirDados   = "C:\ProgramData\agenteesp"
+$NomeTarefa = "Cerberus-Sentinel"
+$DirDados   = "C:\ProgramData\cerberus"
 
 function Test-Admin {
     $id = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -49,12 +49,12 @@ $py = (Get-Command python -ErrorAction SilentlyContinue)
 if (-not $py) { $py = (Get-Command py -ErrorAction SilentlyContinue) }
 if (-not $py) { Write-Error "Python nao encontrado no PATH. Instale o Python 3.9+ e tente novamente."; exit 1 }
 
-Write-Host "[*] Instalando o pacote agenteEsp..."
+Write-Host "[*] Instalando o pacote Cerberus..."
 & $py.Source -m pip install --upgrade pip | Out-Null
 & $py.Source -m pip install "$Raiz" | Out-Null
 
-$exe = (Get-Command agenteesp -ErrorAction SilentlyContinue)
-if (-not $exe) { Write-Error "Comando 'agenteesp' nao encontrado apos a instalacao."; exit 1 }
+$exe = (Get-Command cerberus -ErrorAction SilentlyContinue)
+if (-not $exe) { Write-Error "Comando 'cerberus' nao encontrado apos a instalacao."; exit 1 }
 Write-Host "[*] Binario: $($exe.Source)"
 
 New-Item -ItemType Directory -Force -Path $DirDados | Out-Null
@@ -90,8 +90,8 @@ Write-Host "[*] Iniciando a tarefa agora..."
 schtasks /Run /TN $NomeTarefa | Out-Null
 
 Write-Host ""
-Write-Host "[OK] agenteEsp instalado."
+Write-Host "[OK] Cerberus instalado."
 Write-Host "     Eventos  : $eventos"
 Write-Host "     Logs     : $logArq"
 Write-Host "     Status   : schtasks /Query /TN $NomeTarefa"
-Write-Host "     Relatorio: agenteesp relatorio `"$eventos`" --formato html --saida `"$DirDados\relatorio.html`""
+Write-Host "     Relatorio: cerberus relatorio `"$eventos`" --formato html --saida `"$DirDados\relatorio.html`""

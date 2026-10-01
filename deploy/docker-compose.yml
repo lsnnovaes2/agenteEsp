@@ -1,0 +1,32 @@
+# Cerberus - Sentinel em container, configurado para vigiar a MAQUINA HOSPEDEIRA.
+#
+# As tres opcoes abaixo sao o que faz o container enxergar e encerrar processos
+# do host, em vez de so os do proprio container:
+#   pid: "host"       -> ve os processos do hospedeiro
+#   network_mode: host-> le o IP/hostname reais do hospedeiro
+#   privileged        -> permite enviar sinais (encerrar) a processos do host
+#
+# Sobe em modo AUDITORIA. Para encerrar, acrescente --bloquear ao command.
+
+services:
+  cerberus-sentinel:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: cerberus:latest
+    container_name: cerberus-sentinel
+    restart: unless-stopped
+    pid: "host"
+    network_mode: host
+    privileged: true
+    volumes:
+      - /var/log/cerberus:/var/log/cerberus
+      # Monte um config proprio (opcional):
+      # - ./config/assinaturas.json:/app/config/assinaturas.json:ro
+    command:
+      - sentinel
+      - --intervalo
+      - "3"
+      - --eventos
+      - /var/log/cerberus/eventos.jsonl
+      # - --bloquear        # descomente para encerrar os processos detectados

@@ -156,7 +156,7 @@ def para_texto(equipamentos: List[Equipamento]) -> str:
          "multi": sum(1 for e in equipamentos if e.total_agentes > 1),
          "ag": sum(e.total_agentes for e in equipamentos)}
     linhas.append("=" * 72)
-    linhas.append("RELATORIO DE AGENTES NAO AUTORIZADOS - agenteEsp")
+    linhas.append("RELATORIO DE AGENTES NAO AUTORIZADOS - Cerberus")
     linhas.append(f"Equipamentos afetados: {r['eq']} | com multiplos agentes: {r['multi']} "
                   f"| agentes distintos: {r['ag']}")
     linhas.append("=" * 72)
@@ -173,7 +173,7 @@ def para_texto(equipamentos: List[Equipamento]) -> str:
     return "\n".join(linhas)
 
 
-def para_html(equipamentos: List[Equipamento], titulo: str = "Relatorio agenteEsp") -> str:
+def para_html(equipamentos: List[Equipamento], titulo: str = "Relatorio Cerberus") -> str:
     def esc(x):
         return html.escape(str(x))
 
@@ -244,7 +244,7 @@ def para_html(equipamentos: List[Equipamento], titulo: str = "Relatorio agenteEs
 
 
 def gerar(eventos: Iterable[dict], formato: str = "texto",
-          titulo: str = "Relatorio agenteEsp",
+          titulo: str = "Relatorio Cerberus",
           incluir_porta_suspeita: bool = True) -> str:
     equip = consolidar(eventos, incluir_porta_suspeita)
     saidas = {

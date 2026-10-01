@@ -1,4 +1,4 @@
-"""Interface de linha de comando do agenteEsp."""
+"""Interface de linha de comando do Cerberus."""
 
 import argparse
 import logging
@@ -9,6 +9,7 @@ from .assinaturas import carregar
 from .bloqueios import firewall, sinkhole
 from .relatorio import gerar as gerar_relatorio, ler_eventos
 from .sentinel import SentinelMonitor
+from .varredura import eventos_de, varrer_rede
 
 
 def _configurar_log(nivel: str, arquivo: str = None) -> None:
@@ -64,12 +65,36 @@ def _cmd_relatorio(args) -> int:
     return 0
 
 
+def _cmd_rede(args) -> int:
+    def progresso(feitos, total):
+        if feitos == total or feitos % 50 == 0:
+            print(f"[*] {feitos}/{total} hosts verificados...", file=sys.stderr)
+
+    print(f"[*] Varrendo {', '.join(args.alvos)} (uso autorizado apenas)...", file=sys.stderr)
+    achados = varrer_rede(args.alvos, threads=args.threads, progresso=progresso)
+    eventos = eventos_de(achados)
+    print(f"[*] {len(eventos)} deteccao(oes) em {len({e['ip'] for e in eventos})} host(s).",
+          file=sys.stderr)
+
+    if args.formato == "jsonl":
+        saida = "".join(json.dumps(e, ensure_ascii=False) + "\n" for e in eventos)
+    else:
+        saida = gerar_relatorio(eventos, formato=args.formato)
+        if not saida.endswith("\n"):
+            saida += "\n"
+    (open(args.saida, "w", encoding="utf-8").write(saida) if args.saida
+     else sys.stdout.write(saida))
+    if args.saida:
+        print(f"Saida ({args.formato}) salva em {args.saida}", file=sys.stderr)
+    return 0
+
+
 def construir_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="agenteesp",
+        prog="cerberus",
         description="Deteccao e bloqueio de agentes de IA e tuneis nao autorizados.",
     )
-    p.add_argument("--version", action="version", version=f"agenteEsp {__version__}")
+    p.add_argument("--version", action="version", version=f"Cerberus {__version__}")
     p.add_argument("--config", help="Arquivo JSON com assinaturas adicionais/substitutas.")
     sub = p.add_subparsers(dest="comando", required=True)
 
@@ -102,6 +127,18 @@ def construir_parser() -> argparse.ArgumentParser:
     r.add_argument("--sem-portas-suspeitas", action="store_true",
                    help="Ignora deteccoes de portas genericas (apenas alertas).")
     r.set_defaults(func=_cmd_relatorio)
+
+    v = sub.add_parser("rede",
+                       help="Varre faixas de IP da rede interna procurando agentes expostos.")
+    v.add_argument("alvos", nargs="+",
+                   help="Faixas CIDR ou IPs da SUA rede (ex.: 10.0.0.0/24 192.168.1.5).")
+    v.add_argument("--formato", default="jsonl",
+                   choices=["jsonl", "texto", "json", "csv", "html"],
+                   help="jsonl (padrao) gera eventos para juntar ao relatorio; "
+                        "os demais ja montam o relatorio consolidado.")
+    v.add_argument("--threads", type=int, default=100, help="Varreduras simultaneas.")
+    v.add_argument("--saida", help="Arquivo de saida (padrao: stdout).")
+    v.set_defaults(func=_cmd_rede)
 
     return p
 

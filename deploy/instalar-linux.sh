@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Instalador automatico do agenteEsp para Linux (systemd).
+# Instalador automatico do Cerberus para Linux (systemd).
 # Instala o pacote, cria o servico e o inicia em modo AUDITORIA.
 #
 # Uso:
@@ -10,9 +10,9 @@
 #
 set -euo pipefail
 
-SERVICO="agenteesp-sentinel"
-DIR_CONF="/etc/agenteesp"
-DIR_LOG="/var/log/agenteesp"
+SERVICO="cerberus-sentinel"
+DIR_CONF="/etc/cerberus"
+DIR_LOG="/var/log/cerberus"
 UNIT="/etc/systemd/system/${SERVICO}.service"
 MODO_BLOQUEIO=0
 DESINSTALAR=0
@@ -50,7 +50,7 @@ if [[ $DESINSTALAR -eq 1 ]]; then
   exit 0
 fi
 
-echo "[*] Instalando dependencias e pacote agenteEsp..."
+echo "[*] Instalando dependencias e pacote Cerberus..."
 if command -v python3 >/dev/null 2>&1; then
   PY=python3
 else
@@ -59,7 +59,7 @@ fi
 $PY -m pip install --upgrade pip >/dev/null 2>&1 || true
 $PY -m pip install "${RAIZ}" >/dev/null
 
-BIN="$(command -v agenteesp || echo /usr/local/bin/agenteesp)"
+BIN="$(command -v cerberus || echo /usr/local/bin/cerberus)"
 echo "[*] Binario: ${BIN}"
 
 echo "[*] Criando diretorios..."
@@ -84,7 +84,7 @@ fi
 echo "[*] Gerando unidade systemd em ${UNIT}..."
 cat > "${UNIT}" <<EOF
 [Unit]
-Description=agenteEsp - Sentinel de bloqueio de agentes nao autorizados
+Description=Cerberus - Sentinel de bloqueio de agentes nao autorizados
 After=network.target
 
 [Service]
@@ -108,8 +108,8 @@ sleep 1
 echo
 systemctl --no-pager --full status "${SERVICO}" | head -n 8 || true
 echo
-echo "[OK] agenteEsp instalado."
+echo "[OK] Cerberus instalado."
 echo "     Eventos : ${DIR_LOG}/eventos.jsonl"
 echo "     Logs    : ${DIR_LOG}/sentinel.log"
 echo "     Status  : systemctl status ${SERVICO}"
-echo "     Relatorio: agenteesp relatorio ${DIR_LOG}/eventos.jsonl --formato html --saida /tmp/relatorio.html"
+echo "     Relatorio: cerberus relatorio ${DIR_LOG}/eventos.jsonl --formato html --saida /tmp/relatorio.html"

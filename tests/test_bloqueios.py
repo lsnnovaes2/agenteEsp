@@ -2,8 +2,8 @@
 
 import pytest
 
-from agenteesp.assinaturas import carregar
-from agenteesp.bloqueios import firewall, sinkhole
+from cerberus.assinaturas import carregar
+from cerberus.bloqueios import firewall, sinkhole
 
 
 @pytest.fixture
