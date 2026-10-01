@@ -1,0 +1,9 @@
+{
+  "_comentario": "Liste aqui os segmentos/VLANs da empresa que o Cerberus deve varrer. Cada deteccao sera rotulada com o nome do segmento no relatorio.",
+  "segmentos": [
+    { "nome": "VLAN10-Administrativo", "cidr": "10.10.0.0/24" },
+    { "nome": "VLAN20-Financeiro",     "cidr": "10.20.0.0/24" },
+    { "nome": "VLAN30-Producao",       "cidr": "10.30.0.0/22" },
+    { "nome": "VLAN40-WiFi-Visitantes","cidr": "10.40.0.0/24" }
+  ]
+}

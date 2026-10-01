@@ -1,0 +1,19 @@
+[Unit]
+Description=Cerberus - Sentinel de bloqueio de agentes nao autorizados
+After=network.target
+
+[Service]
+Type=simple
+# Modo AUDITORIA por padrao. Para efetivamente encerrar os processos,
+# acrescente --bloquear ao ExecStart apos validar os eventos registrados.
+ExecStart=/usr/bin/cerberus --config /etc/cerberus/assinaturas.json sentinel \
+    --intervalo 3 \
+    --eventos /var/log/cerberus/eventos.jsonl \
+    --log-arquivo /var/log/cerberus/sentinel.log
+Restart=on-failure
+RestartSec=5
+# Precisa de privilegios para ver/encerrar processos de outros usuarios
+User=root
+
+[Install]
+WantedBy=multi-user.target
