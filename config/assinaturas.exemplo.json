@@ -1,0 +1,15 @@
+{
+  "_comentario": "Estende ou substitui as assinaturas padrao. Use 'adicionar_*' para somar e 'substituir_*' para trocar a lista inteira.",
+
+  "adicionar_binarios": ["meuagente-interno", "vllm"],
+  "adicionar_argumentos": ["meu_framework_de_agente"],
+
+  "adicionar_portas_proibidas": {
+    "9100": "Agente proprietario da empresa"
+  },
+
+  "adicionar_dominios_ia": ["llm.fornecedor-x.com"],
+  "adicionar_dominios_tunel": ["tunel.fornecedor-y.net"],
+
+  "adicionar_usuarios_autorizados": ["pesquisa", "laboratorio-ia"]
+}
