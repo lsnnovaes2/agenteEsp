@@ -117,6 +117,17 @@ def test_pip_install_de_agente_nao_dispara(monitor):
                                      cmdline=["python3", "-m", "pip", "install", "crewai"])) is None
 
 
+def test_detecta_agente_claude_binario(monitor):
+    v = avaliar(monitor, FakeProc(130, "claude", exe="/usr/local/bin/claude"))
+    assert v and v.regra == "binario" and v.agente == "claude"
+
+
+def test_detecta_claude_agent_sdk_na_linha_de_comando(monitor):
+    v = avaliar(monitor, FakeProc(131, "python3",
+                                  cmdline=["python3", "-m", "claude_agent_sdk", "run"]))
+    assert v and v.regra == "argumento"
+
+
 def test_processo_isento(monitor):
     assert avaliar(monitor, FakeProc(111, "systemd")) is None
 

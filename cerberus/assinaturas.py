@@ -15,6 +15,8 @@ BINARIOS_PROIBIDOS: Set[str] = {
     # IA local / servidores de LLM
     "ollama", "ollama app", "lmstudio", "lm studio", "lms", "localai",
     "open-webui", "llamafile", "llama-server", "koboldcpp", "gpt4all",
+    # Agentes de codigo / assistentes de linha de comando
+    "claude", "claude-code", "aider", "goose", "gemini", "cursor-agent",
     # Tuneis reversos e VPNs mesh nao homologadas
     "ngrok", "cloudflared", "frpc", "bore", "localtunnel", "lt",
     "tailscale", "tailscaled", "zerotier-one", "chisel", "rathole",
@@ -25,6 +27,8 @@ ARGUMENTOS_PROIBIDOS: List[str] = [
     "crewai", "autogpt", "babyagi", "superagi", "smolagents", "metagpt",
     "langgraph", "agent_executor", "open-interpreter", "interpreter --",
     "ollama serve", "open-webui serve", "openhands", "agentgpt",
+    # Agentes Claude / Anthropic (SDK e MCP)
+    "claude-agent-sdk", "claude_agent_sdk", "claude mcp", "@anthropic-ai",
 ]
 
 # A regra de linha de comando so vale para estes interpretadores, para nao
